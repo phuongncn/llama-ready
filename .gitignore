@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.env
+*.log
+
+# Project-specific
+.plan/
+llm_proxy_config.json
+llama_server.log
+proxy_env/
