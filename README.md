@@ -50,29 +50,29 @@ Your AI client (OpenWebUI, Continue.dev, curl...)
 
 - Python 3.8+
 - [llama.cpp](https://github.com/ggerganov/llama.cpp) built with `llama-server`
-- tmux (for `run.sh` — optional, you can run `llm_ready.py` directly)
+- tmux
 
 ### Install
 
 ```bash
 git clone https://github.com/phuongncn/llama-ready
 cd llama-ready
-python -m venv proxy_env
-source proxy_env/bin/activate   # Windows: proxy_env\Scripts\activate
-pip install -r requirements.txt
+./install.sh
 ```
 
 ### Run
 
 ```bash
-# Default paths (~/models and ~/llama.cpp/build/bin/llama-server)
-python llm_ready.py
-
-# Custom paths
-python llm_ready.py --models-dir /data/models --llama-bin /opt/llama/build/bin/llama-server
-
-# With tmux session manager (Linux/macOS)
 ./run.sh
+```
+
+- **No instances running** → starts a new tmux session and attaches
+- **Instances already running** → shows an interactive menu: attach to one, start another, or stop all
+- **Stop all**: `./run.sh stop`
+
+For custom paths:
+```bash
+python py_scripts/llm_ready.py --models-dir /data/models --llama-bin /opt/llama/build/bin/llama-server
 ```
 
 ### Point your client to the proxy
@@ -106,23 +106,25 @@ Settings are saved to `llm_proxy_config.json` and reused on next launch.
 
 ## Platform Support
 
-| Platform | Status | Notes |
-|---|---|---|
-| Linux | ✅ Full support | Recommended |
-| macOS | ✅ Full support | |
-| Windows | ⚠️ Partial | Run `llm_ready.py` directly; `run.sh` requires WSL |
+| Platform | Status |
+|---|---|
+| Linux | ✅ Recommended |
+| macOS | ✅ Supported |
+| Windows | Use WSL |
 
 ## Project Structure
 
 ```
 llama-ready/
-├── llm_ready.py     # Entrypoint — argparse, startup, signal handling
-├── config.py        # Globals, config load/save, port finder
-├── models.py        # Model discovery, llama-server command builder
-├── menu.py          # Interactive setup wizard
-├── manager.py       # llama-server lifecycle (start/stop/watch)
-├── proxy.py         # Flask proxy, WebP→JPEG conversion
-├── run.sh           # tmux session manager (Linux/macOS)
+├── py_scripts/
+│   ├── llm_ready.py     # Entrypoint — argparse, startup, signal handling
+│   ├── config.py        # Globals, config load/save, port finder
+│   ├── models.py        # Model discovery, llama-server command builder
+│   ├── menu.py          # Interactive setup wizard
+│   ├── manager.py       # llama-server lifecycle (start/stop/watch)
+│   └── proxy.py         # Flask proxy, WebP→JPEG conversion
+├── install.sh           # First-time setup (venv + dependencies)
+├── run.sh               # tmux session manager
 └── requirements.txt
 ```
 
