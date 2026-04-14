@@ -47,4 +47,5 @@ if __name__ == '__main__':
     print(f"║  Idle shutdown : {config.IDLE_TIMEOUT//60} min{'':<24}║")
     print(f"╚══════════════════════════════════════════════╝")
 
-    app.run(host='0.0.0.0', port=config.PROXY_PORT, use_reloader=False)
+    from waitress import serve
+    serve(app, host='0.0.0.0', port=config.PROXY_PORT, threads=8)

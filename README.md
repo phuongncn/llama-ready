@@ -57,6 +57,7 @@ Your AI client (OpenWebUI, Continue.dev, curl...)
 ```bash
 git clone https://github.com/phuongncn/llama-ready
 cd llama-ready
+chmod +x install.sh run.sh
 ./install.sh
 ```
 

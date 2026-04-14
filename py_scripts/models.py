@@ -23,6 +23,14 @@ def check_turbo_support():
         return False
 
 
+def check_rtr_support():
+    try:
+        out = subprocess.run([config.LLAMA_BIN, "--help"], capture_output=True, text=True, timeout=5)
+        return "run-time-repack" in out.stdout.lower() or "run-time-repack" in out.stderr.lower()
+    except Exception:
+        return False
+
+
 def build_llama_cmd(model_file, mmproj_file, port, ctx, gpu_layers,
                     parallel, batch, ubatch, ctk, ctv, threads, threads_batch,
                     reasoning, nommap, nocache,
@@ -46,7 +54,7 @@ def build_llama_cmd(model_file, mmproj_file, port, ctx, gpu_layers,
     if nocache:  cmd.append("--no-cache-prompt")
     if nommap:   cmd.append("--no-mmap")
     if mmproj_file: cmd += ["--mmproj", mmproj_file]
-    if rtr:      cmd.append("--run-time-repack")
+    if rtr and check_rtr_support(): cmd.append("--run-time-repack")
     if not fmoe: cmd.append("-no-fmoe")
     if muge:     cmd.append("-muge")
     return cmd
