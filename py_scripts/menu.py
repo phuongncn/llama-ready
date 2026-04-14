@@ -25,8 +25,7 @@ def interactive_menu():
                 llm_port, saved["ctx"], saved["gpu_layers"],
                 saved["parallel"], saved["batch"], saved["ubatch"],
                 ctk, ctv, saved["threads"], saved["threads_batch"],
-                saved["reasoning"], saved["nommap"], saved.get("nocache", True),
-                saved.get("rtr", False), saved.get("fmoe", True), saved.get("muge", False)
+                saved["reasoning"], saved["nommap"], saved.get("nocache", True)
             )
             config.CUDA_ENV = {}
             if saved.get("cuda_graph"):   config.CUDA_ENV["GGML_CUDA_GRAPH_OPT"] = "1"
@@ -109,10 +108,6 @@ def interactive_menu():
     cuda_graph = input("CUDA graph optimization (Y/n) [Y]: ").strip().lower() in ("", "y")
     cuda_cublas= input("CUDA force cuBLAS (Y/n) [Y]: ").strip().lower() in ("", "y")
 
-    print("\n=== llama.cpp flags ===")
-    rtr  = input("run-time repack --rtr (Y/n) [Y]: ").strip().lower() in ("", "y")
-    fmoe = input("fused MoE -fmoe (Y/n) [Y]: ").strip().lower() in ("", "y")
-    muge = input("merge up+gate experts -muge (Y/n) [n]: ").strip().lower() == "y"
 
     config.LLAMA_SERVER_URL = f"http://localhost:{port}"
     config.CUDA_ENV = {}
@@ -122,7 +117,7 @@ def interactive_menu():
     config.LLAMA_CMD = build_llama_cmd(
         model_file, mmproj_file, port, ctx, gpu_layers,
         parallel, batch, ubatch, ctk, ctv, threads, threads_batch,
-        reasoning, nommap, nocache, rtr, fmoe, muge
+        reasoning, nommap, nocache
     )
 
     save_config({
@@ -134,7 +129,6 @@ def interactive_menu():
         "threads": threads, "threads_batch": threads_batch,
         "reasoning": reasoning, "nommap": nommap, "nocache": nocache,
         "cuda_graph": cuda_graph, "cuda_cublas": cuda_cublas,
-        "rtr": rtr, "fmoe": fmoe, "muge": muge,
     })
 
     print("\n=== Summary ===")
@@ -143,7 +137,6 @@ def interactive_menu():
     print(f"  Idle timeout: {config.IDLE_TIMEOUT//60} minutes")
     print(f"  LLM port    : {port}")
     print(f"  CTX         : {ctx} | ctk={ctk} ctv={ctv} | GPU layers: {gpu_layers}")
-    print(f"  Flags       : rtr={rtr} fmoe={fmoe} muge={muge}")
     if config.CUDA_ENV:
         print(f"  CUDA env    : {config.CUDA_ENV}")
     print()
