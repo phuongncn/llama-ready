@@ -100,7 +100,7 @@ echo "=== Starting llama-ready (session: $SESSION) ==="
 
 # Create new tmux session and run Python inside
 tmux new-session -d -s "$SESSION" -x 220 -y 50 \
-    "bash -c \"source '$DIR/proxy_env/bin/activate' && python '$DIR/py_scripts/llm_ready.py'; deactivate 2>/dev/null\""
+    "bash -c \"source '$DIR/proxy_env/bin/activate' && exec python '$DIR/py_scripts/llm_ready.py'\""
 
 echo "Started in tmux session '$SESSION'. Attaching to configure..."
 echo "(Ctrl+B D to detach — process keeps running)"
