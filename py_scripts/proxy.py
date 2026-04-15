@@ -58,6 +58,6 @@ def proxy(path):
         for chunk in resp.iter_content(chunk_size=8192):
             if chunk:
                 yield chunk
-    excluded = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
+    excluded = ['content-encoding', 'content-length', 'transfer-encoding', 'connection', 'keep-alive']
     headers  = [(k, v) for k, v in resp.raw.headers.items() if k.lower() not in excluded]
     return Response(stream_with_context(generate()), status=resp.status_code, headers=headers)
