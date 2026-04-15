@@ -16,9 +16,18 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_FILE      = os.path.join(_ROOT, "llm_proxy_config.json")
 LOG_FILE         = os.path.join(_ROOT, "llama_server.log")
 
-llama_process = None
-last_activity = time.time()
-llama_lock    = threading.Lock()
+# Instance pool for multi-backend load balancing
+instance_pool = {}
+# Format: { port: {"process": Popen, "active_requests": int, "last_used": timestamp} }
+MAX_INSTANCES = 3
+IDLE_TIMEOUT = 3600  # 60 minutes - Global idle timeout for stopping ALL instances
+INSTANCE_IDLE_TIMEOUT = 300  # 5 minutes - Per-instance idle timeout for aggressive scale-down
+CONCURRENT_PER_INSTANCE = 1  # Threshold to trigger scaling
+
+# Thread-safe locks
+llama_lock = threading.Lock()
+pool_lock = threading.Lock()
+global_last_activity = time.time()
 
 
 def find_free_port(start, max_tries=20):

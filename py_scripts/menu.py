@@ -10,10 +10,12 @@ def interactive_menu():
         print("\n=== Found saved config ===")
         print(f"  Model       : {os.path.basename(saved.get('model_file',''))}")
         print(f"  Idle timeout: {saved.get('idle_minutes', 60)} minutes")
+        print(f"  Max instances: {saved.get('max_instances', 3)}")
         print(f"  CTX         : {saved.get('ctx')} | ctk={saved.get('ctk','q8_0')} ctv={saved.get('ctv','q8_0')} | GPU layers: {saved.get('gpu_layers')}")
         reuse = input("\nUse this config? (Y/n): ").strip().lower()
         if reuse in ("", "y"):
             config.IDLE_TIMEOUT = saved["idle_minutes"] * 60
+            config.MAX_INSTANCES = saved.get("max_instances", 3)
             llm_port = find_free_port(saved["port"])
             if llm_port != saved["port"]:
                 print(f"[Config] Port {saved['port']} in use, switching to {llm_port}.")
@@ -77,6 +79,13 @@ def interactive_menu():
     print("\n=== Proxy settings ===")
     idle_input = input("Auto-stop llama after how many idle minutes? [60]: ").strip()
     config.IDLE_TIMEOUT = int(idle_input) * 60 if idle_input.isdigit() else 3600
+    
+    print("\n=== Load Balancer settings ===")
+    max_input = input("Max concurrent instances [3]: ").strip()
+    config.MAX_INSTANCES = int(max_input) if max_input.isdigit() else 3
+    
+    idle_timeout_input = input("Instance Idle Timeout (minutes) [5]: ").strip()
+    config.INSTANCE_IDLE_TIMEOUT = int(idle_timeout_input) * 60 if idle_timeout_input.isdigit() else 300
 
     print("\n=== llama-server settings (Enter = default) ===")
     def ask(prompt, default):
@@ -128,6 +137,7 @@ def interactive_menu():
     save_config({
         "model_file": model_file, "mmproj_file": mmproj_file,
         "idle_minutes": config.IDLE_TIMEOUT // 60,
+        "max_instances": config.MAX_INSTANCES,
         "port": port, "ctx": ctx, "gpu_layers": gpu_layers,
         "parallel": parallel, "batch": batch, "ubatch": ubatch,
         "ctk": ctk, "ctv": ctv,

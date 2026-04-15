@@ -1,10 +1,17 @@
 import base64, io
+import time
+import uuid
 from flask import Flask, request, Response, stream_with_context
 import requests as req_lib
 from PIL import Image
 import manager
 
 app = Flask(__name__)
+
+
+def generate_short_id():
+    """Generate a short unique request ID."""
+    return str(uuid.uuid4())[:8]
 
 
 def convert_webp_to_jpeg(b64_string):
@@ -27,12 +34,22 @@ def convert_webp_to_jpeg(b64_string):
 
 @app.route('/<path:path>', methods=['GET', 'POST', 'OPTIONS'])
 def proxy(path):
-    import config
+    req_id = generate_short_id()
+    print(f"[Proxy] [REQ:{req_id}] Incoming {request.method} {request.path}")
+    
     if request.method == 'OPTIONS':
         return '', 200
-    manager.ensure_llama_running()
-    config.last_activity = __import__('time').time()
-    target_url = f"{config.LLAMA_SERVER_URL}/{path}"
+    
+    # Get the best instance for this request
+    target_port = manager.get_best_instance(req_id)
+    if target_port is None:
+        print(f"[Proxy] [REQ:{req_id}] ERROR: No instance available!")
+        return "No instance available", 503
+    
+    manager.increment_active(target_port)
+    print(f"[Proxy] [REQ:{req_id}] Routing to Instance:{target_port}")
+    
+    target_url = f"http://localhost:{target_port}/{path}"
     kwargs = {
         "method": request.method,
         "url": target_url,
@@ -53,11 +70,45 @@ def proxy(path):
         kwargs["json"] = data
     else:
         kwargs["data"] = request.get_data()
-    resp = req_lib.request(**kwargs)
-    def generate():
-        for chunk in resp.iter_content(chunk_size=8192):
-            if chunk:
-                yield chunk
-    excluded = ['content-encoding', 'content-length', 'transfer-encoding', 'connection', 'keep-alive']
-    headers  = [(k, v) for k, v in resp.raw.headers.items() if k.lower() not in excluded]
-    return Response(stream_with_context(generate()), status=resp.status_code, headers=headers)
+    
+    try:
+        resp = req_lib.request(**kwargs)
+        
+        # Check if the client requested a stream (usually via JSON body)
+        is_stream = False
+        if request.is_json:
+            is_stream = request.json.get("stream", False)
+        elif "text/event-stream" in resp.headers.get("content-type", ""):
+            is_stream = True
+
+        if is_stream:
+            # Logic cũ cho Streaming
+            def generate():
+                try:
+                    for chunk in resp.iter_content(chunk_size=8192):
+                        if chunk: yield chunk
+                finally:
+                    manager.decrement_active(target_port)
+                    print(f"[Proxy] [REQ:{req_id}] Stream Completed. Releasing Instance:{target_port}")
+            
+            excluded = ['content-encoding', 'content-length', 'transfer-encoding', 'connection', 'keep-alive']
+            headers = [(k, v) for k, v in resp.raw.headers.items() if k.lower() not in excluded]
+            return Response(stream_with_context(generate()), status=resp.status_code, headers=headers)
+        
+        else:
+            # Logic mới cho Non-Stream (Trường hợp Benchmark)
+            try:
+                # Đọc toàn bộ content
+                content = resp.content
+                excluded = ['content-encoding', 'content-length', 'transfer-encoding', 'connection', 'keep-alive']
+                headers = [(k, v) for k, v in resp.raw.headers.items() if k.lower() not in excluded]
+                return Response(content, status=resp.status_code, headers=headers)
+            finally:
+                # Giảm counter ngay sau khi lấy xong content
+                manager.decrement_active(target_port)
+                print(f"[Proxy] [REQ:{req_id}] Non-Stream Completed. Releasing Instance:{target_port}")
+
+    except Exception as e:
+        manager.decrement_active(target_port)
+        print(f"[Proxy] [REQ:{req_id}] ERROR: {str(e)}")
+        return str(e), 500
